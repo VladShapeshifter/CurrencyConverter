@@ -7,74 +7,47 @@ import java.io.*;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by Vladislav on 24.12.2014.
  */
 public class DetermineRates {
-    private double rates;
-    private String fromCur;
-    private String toCur;
-
-    public DetermineRates(String fromCur, String toCur, double rates) {
-        this.fromCur = fromCur;
-        this.toCur = toCur;
-        this.rates = rates;
-    }
-    public static void execute() throws IOException {
-        BufferedReader reader = new BufferedReader(new FileReader("src/main/resources/currencyrates.txt"));
+    public static Map determine() throws IOException {
+        BufferedReader reader = new BufferedReader(new FileReader("src/main/resources/currencyRates.txt"));
         String read;
         String[] stringArr;
+        String typeTo = "";
+        String typeFrom = "";
+        double rateD = 0.0;
+        Map<String, Double> map1 = new HashMap<>();
+        Map<String, Double> map2 = new HashMap<>();
         while ((read = reader.readLine())!=null) {
             stringArr = read.split(" ");
-            String typeFrom = "";
             for (int i = 0; i < stringArr.length; i++) {
                 if (stringArr[i].matches("\\D+")) {
-                    typeFrom = stringArr[i];
+                    typeTo = stringArr[i];
                 }
                 String rateS = "";
-                double rateD;
-                String typeTo = "";
                 int y = 0;
                 if (stringArr[i].matches("(\\D+\\d+\\.\\d+)|(\\d+\\.\\d+\\D+)")) {
-                    while (y < stringArr[i].length()/* && ReversePolishNotation.isNotCurrency(stringArr[i].charAt(y))*/) {
+                    while (y < stringArr[i].length()) {
                         if (stringArr[i].charAt(y) == '.' || Character.isDigit(stringArr[i].charAt(y))) {
                             rateS += stringArr[i].charAt(y++);
                         } else {
                             if (stringArr[i].charAt(y) != ' ')
-                            typeTo += stringArr[i].charAt(y++);
+                            typeFrom += stringArr[i].charAt(y++);
                         }
                     }
                     rateD = Double.parseDouble(rateS);
-
-                    System.out.println("Type From: " + typeFrom + " " + "Type To: " + typeTo + " " + "RateD: " + rateD);
+                    map1.put(typeTo, map2.put(typeFrom, rateD));
+                    System.out.println("Type To: " + typeTo + " " + "Type From: " + typeFrom + " " + "RateD: " + rateD);
                 }
             }
         }
         reader.close();
-    }
-
-    public double getRates() {
-        return rates;
-    }
-
-    public void setRates(double rates) {
-        this.rates = rates;
-    }
-
-    public String getFromCur() {
-        return fromCur;
-    }
-
-    public void setFromCur(String fromCur) {
-        this.fromCur = fromCur;
-    }
-
-    public String getToCur() {
-        return toCur;
-    }
-
-    public void setToCur(String toCur) {
-        this.toCur = toCur;
+//        return new Currency(typeFrom, rateD);
+        return map1;
     }
 }
