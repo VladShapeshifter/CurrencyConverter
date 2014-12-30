@@ -14,18 +14,19 @@ import java.util.Map;
  * Created by Vladislav on 24.12.2014.
  */
 public class DetermineRates {
-    public static Map determine() throws IOException {
+    private String read;
+    private String[] stringArr;
+    private String typeTo = "";
+    private String typeFrom = "";
+    private double rateD = 0.0;
+    private Map map1 = new HashMap<>();
+    private Map<String, Double> map2 = new HashMap<>();
+    public DetermineRates() throws IOException {
         BufferedReader reader = new BufferedReader(new FileReader("src/main/resources/currencyRates.txt"));
-        String read;
-        String[] stringArr;
-        String typeTo = "";
-        String typeFrom = "";
-        double rateD = 0.0;
-        Map<String, Double> map1 = new HashMap<>();
-        Map<String, Double> map2 = new HashMap<>();
         while ((read = reader.readLine())!=null) {
             stringArr = read.split(" ");
             for (int i = 0; i < stringArr.length; i++) {
+                String typeFromIn = "";
                 if (stringArr[i].matches("\\D+")) {
                     typeTo = stringArr[i];
                 }
@@ -37,9 +38,10 @@ public class DetermineRates {
                             rateS += stringArr[i].charAt(y++);
                         } else {
                             if (stringArr[i].charAt(y) != ' ')
-                            typeFrom += stringArr[i].charAt(y++);
+                                typeFromIn += stringArr[i].charAt(y++);
                         }
                     }
+                    typeFrom = typeFromIn;
                     rateD = Double.parseDouble(rateS);
                     map1.put(typeTo, map2.put(typeFrom, rateD));
                     System.out.println("Type To: " + typeTo + " " + "Type From: " + typeFrom + " " + "RateD: " + rateD);
@@ -47,7 +49,25 @@ public class DetermineRates {
             }
         }
         reader.close();
-//        return new Currency(typeFrom, rateD);
+    }
+
+    public String getTypeTo() {
+        return typeTo;
+    }
+
+    public String getTypeFrom() {
+        return typeFrom;
+    }
+
+    public double getRateD() {
+        return rateD;
+    }
+
+    public Map getMap1() {
         return map1;
+    }
+
+    public Map<String, Double> getMap2() {
+        return map2;
     }
 }
