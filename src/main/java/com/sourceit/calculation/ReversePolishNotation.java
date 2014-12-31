@@ -1,5 +1,6 @@
 package com.sourceit.calculation;
 
+import com.sourceit.determine.DetermineRates;
 import com.sourceit.exceptions.WrongCalculationOperator;
 import com.sourceit.models.Currency;
 import com.sourceit.operators.*;
@@ -20,17 +21,8 @@ public class ReversePolishNotation {
     public static boolean isNotCurrency(char c) {
         return isOperator(c) || c ==  '(' || c == ')' || c == ' ';
     }
-    static boolean detCurrency(String s) throws IOException { // определитель валюты в которую конвертируем
-        BufferedReader bis = new BufferedReader(new FileReader("src/main/resources/currencylist.txt.txt"));
-        String readCur = bis.readLine();
-        String[] arr = readCur.split(" ");
-        for (int i = 0; i < arr.length; i+=2) { // обнаруживаем записи вида "toDollar" и т.п.
-            if (s.contains(arr[i])) {
-
-//                new Currency(arr[i], arr[i+1]);
-            }
-        }
-        return true;
+    private static boolean isLetter(char c) throws IOException {
+        return Character.isAlphabetic(c);
     }
     static int priority(char op) {
         switch (op) { // при + или - возврат 1, при * / 2 иначе -1
@@ -40,6 +32,8 @@ public class ReversePolishNotation {
             case '*':
             case '/':
                 return 2;
+            case 'c': // conversion - значит отслежено выражение типа "toDollar"
+                return 3;
             default:
                 return -1;
         }
@@ -62,7 +56,6 @@ public class ReversePolishNotation {
                 break;
         }
     }
-    // TO DO: разбить на отдельные классы метод calculate(), processOperator(), priority() и остальные. затем определить какие классы за что отвечают и добавить новые классы
     static Currency calculate(Object o1, Object o2, StandardMathOperator op) throws WrongCalculationOperator {
         if (o1 instanceof Currency && o2 instanceof Currency) {
             return op.eval((Currency) o1, (Currency) o2);
@@ -71,43 +64,53 @@ public class ReversePolishNotation {
         } else
         return op.eval((Currency) o1, (Double) o2);
     }
+    static double multiplyToRates(Currency currency, double rates) {
+        return currency.getValue() * rates;
+    }
+
     public static Object eval(String s) throws WrongCalculationOperator, IOException { // вводим выражение
         LinkedList<Object> st = new LinkedList<Object>(); // сюда наваливают цифры
         LinkedList<Character> op = new LinkedList<Character>(); // сюда опрераторы, и st и op в порядке поступления
-        if (detCurrency(s)) {
-            for (int i = 0; i < s.length(); i++) { // парсим строку с выражением и вычисляем
-                char c = s.charAt(i);
-                if (isDelim(c))
-                    continue;
-                if (c == '(') // елси текущий елемент "(", то добавляем "(" в операторы
-                    op.add('(');
-                else if (c == ')') { // если текущий елемент ")", то добавляем ")", если есть еще такие скобки
-                    while (op.getLast() != '(')
-                        processOperator(st, op.removeLast()); // наполняем цифрами и операторами, у операторов удаляем последний в списке
-                    op.removeLast(); // удаляем скобку "(", массив операторов стал пустым
-                } else if (isOperator(c)) { // если текущий елемент оператор (не скобка), то производим действия над числами (сначало * /, потом + -)
-                    while (!op.isEmpty() && priority(op.getLast()) >= priority(c))
-                        processOperator(st, op.removeLast());
-                    op.add(c);
-                } else { // если текущий елемент число, или подряд идущие числа
-                    String value = "";
-                    String type = "";
-                    while (i < s.length() && isNotCurrency(s.charAt(i))) {
-                        if (s.charAt(i) == '.' || Character.isDigit(s.charAt(i))) {
-                            value += s.charAt(i++);
-                        } else {
-                            type += s.charAt(i++);
-                        }
-                    }
-                    if (type.isEmpty()) {
-                        Double operand = Double.parseDouble(value);
-                        st.add(operand);
+        String toCurrency = "";
+        for (int i = 0; i < s.length(); i++) { // парсим строку с выражением и вычисляем
+            char c = s.charAt(i);
+            if (isDelim(c)) // каждый последующим символ всегда проверяется, не пробел ли он
+                continue;
+            if (isLetter(c)) {
+                toCurrency += c;
+
+
+            }
+            else if (c == '(')
+                op.add('('); // иначе елси символ = "(", то добавляем "(" в операторы
+            else if (c == ')') {
+                while (op.getLast() != '(')
+                    processOperator(st, op.removeLast()); // иначе если символ = ")", то, пока последний символ в op не "(", добавляем результат сложения
+                    // (+ - * /) над последним и предпоследним числами в st, одновременно передаем и удаляем последний оператор из op
+                op.removeLast(); // удалить "("
+            } else if (isOperator(c)) {
+                while (!op.isEmpty() && priority(op.getLast()) >= priority(c))// иначе если символ = (+-*/), то пока в op есть
+                // операторы, выполнять действия надчислами согласно приоритету действия, одновременно передаем и удаляем последний оператор из op
+                    processOperator(st, op.removeLast());
+                op.add(c); // добавить +-*/
+            } else { // иначе, т.е. если это цифры или буквы или $, то добавить их в st
+                String value = "";
+                String type = "";
+                while (i < s.length() && !isNotCurrency(s.charAt(i))) {
+                    if (s.charAt(i) == '.' || Character.isDigit(s.charAt(i))) {
+                        value += s.charAt(i++);
                     } else {
-                        Currency currency = new Currency(type, Double.parseDouble(value));
-                        st.add(currency);
+                        type += s.charAt(i++);
                     }
-                    --i;
                 }
+                if (type.isEmpty()) {
+                    Double operand = Double.parseDouble(value);
+                    st.add(operand); // добавить простое число Double, вместо Currency с валютой и значением
+                } else {
+                    Currency currency = new Currency(type, Double.parseDouble(value));
+                    st.add(currency); // добавить Currency валюту и значение в st
+                }
+                --i;
             }
         }
         while (!op.isEmpty())
@@ -116,8 +119,13 @@ public class ReversePolishNotation {
     }
 
 
+
+
     public static void main(String[] args) throws WrongCalculationOperator, IOException {
+//        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+//        String userInput = reader.readLine();
         System.out.println(eval("toDollar(3uero)"));
+//        System.out.println(eval(userInput));
     }
 }
 
