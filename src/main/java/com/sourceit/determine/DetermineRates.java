@@ -1,12 +1,7 @@
 package com.sourceit.determine;
 
-import com.sourceit.calculation.ReversePolishNotation;
-import com.sourceit.models.Currency;
 
 import java.io.*;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -44,7 +39,7 @@ public class DetermineRates {
                     typeFrom = typeFromIn;
                     rateD = Double.parseDouble(rateS);
                     map1.put(typeTo, map2.put(typeFrom, rateD));
-                    System.out.println("Type To: " + typeTo + " " + "Type From: " + typeFrom + " " + "RateD: " + rateD);
+//                    System.out.println("Type To: " + typeTo + " " + "Type From: " + typeFrom + " " + "RateD: " + rateD);
                 }
             }
         }
