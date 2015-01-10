@@ -21,10 +21,13 @@ public class ReversePolishNotation {
     static boolean isDelim(char c) { // тру если пробел
         return c == ' ';
     }
-    static boolean isOperator(String c) { // возвращяем тру если один из символов ниже
-        return c == "+" || c == "-" || c == "*" || c == "/" || c == toCurrency;
+    static boolean isOperator(String c) throws IOException { // возвращяем тру если один из символов ниже
+        if (isConversion()) {
+            return c == toCurrency;
+        }
+        return c == "+" || c == "-" || c == "*" || c == "/";
     }
-    public static boolean isNotCurrency(String c) {
+    public static boolean isNotCurrency(String c) throws IOException {
         return isOperator(c) || c ==  "(" || c == ")" || c == " ";
     }
     private static boolean isConversion() throws IOException {
@@ -79,39 +82,38 @@ public class ReversePolishNotation {
                 continue;
             if (Character.isAlphabetic(c)) {
                 toCurrency += c;
+                str = toCurrency;
             }
-            else if (isConversion()) {
-                if (c == '(')
-                    op.add("("); // иначе елси символ = "(", то добавляем "(" в операторы
-                else if (c == ')') {
-                    while (op.getLast() != "(")
-                        processOperator(st, op.removeLast()); // иначе если символ = ")", то, пока последний символ в op не "(", добавляем результат сложения
+            if (isOperator(str)) {
+                while (!op.isEmpty() && priority(op.getLast()) >= priority(str))// иначе если символ = (+-*/), то пока в op есть
+                    // операторы, выполнять действия надчислами согласно приоритету действия, одновременно передаем и удаляем последний оператор из op
+                    processOperator(st, op.removeLast());
+                op.add(str); // добавить +-*/
+            } else if (c == '(')
+                op.add("("); // иначе елси символ = "(", то добавляем "(" в операторы
+            else if (c == ')') {
+                while (op.getLast() != "(")
+                    processOperator(st, op.removeLast()); // иначе если символ = ")", то, пока последний символ в op не "(", добавляем результат сложения
                     // (+ - * /) над последним и предпоследним числами в st, одновременно передаем и удаляем последний оператор из op
                     op.removeLast(); // удалить "("
-                } else if (isOperator(str)) {
-                    while (!op.isEmpty() && priority(op.getLast()) >= priority(str))// иначе если символ = (+-*/), то пока в op есть
-                        // операторы, выполнять действия надчислами согласно приоритету действия, одновременно передаем и удаляем последний оператор из op
-                        processOperator(st, op.removeLast());
-                    op.add(str); // добавить +-*/
-                } else { // иначе, т.е. если это цифры или буквы или $, то добавить их в st
-                    String value = "";
-                    String type = "";
-                    while (i < s.length() && !isNotCurrency(Character.toString(s.charAt(i)))) {
-                        if (s.charAt(i) == '.' || Character.isDigit(s.charAt(i))) {
-                            value += s.charAt(i++);
-                        } else {
-                            type += s.charAt(i++);
-                        }
-                    }
-                    if (type.isEmpty()) {
-                        Double operand = Double.parseDouble(value);
-                        st.add(operand); // добавить простое число Double, вместо Currency с валютой и значением
+            } else { // иначе, т.е. если это цифры или буквы или $, то добавить их в st
+                String value = "";
+                String type = "";
+                while (i < s.length() && !isNotCurrency(Character.toString(s.charAt(i)))) {
+                    if (s.charAt(i) == '.' || Character.isDigit(s.charAt(i))) {
+                        value += s.charAt(i++);
                     } else {
-                        Currency currency = new Currency(type, Double.parseDouble(value));
-                        st.add(currency); // добавить Currency валюту и значение в st
+                        type += s.charAt(i++);
                     }
-                    --i;
                 }
+                if (type.isEmpty()) {
+                    Double operand = Double.parseDouble(value);
+                    st.add(operand); // добавить простое число Double, вместо Currency с валютой и значением
+                } else {
+                    Currency currency = new Currency(type, Double.parseDouble(value));
+                    st.add(currency); // добавить Currency валюту и значение в st
+                }
+                --i;
             }
         }
         while (!op.isEmpty())
