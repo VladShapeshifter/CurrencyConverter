@@ -106,7 +106,7 @@ public class ReversePolishNotation {
                 if (Character.isAlphabetic(s.charAt(i))) {
                     break;
                 } else {
-                    st.add(i);
+                    st.add(str);
                 }
             }
             /*else { // иначе, т.е. если это цифры или буквы или $, то добавить их в st
