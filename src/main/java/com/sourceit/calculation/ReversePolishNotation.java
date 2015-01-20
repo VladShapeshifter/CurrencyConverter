@@ -18,21 +18,22 @@ public class ReversePolishNotation {
     static String toCurrency = "";
     static String userInput;
     static DetermineRates determineRates;
-    static boolean isDelim(char c) { // тру если пробел
-        return c == ' ';
+    static DetermineConversion determineConversion;
+    static Currency currency; // в этом currency хранится число и какую валюту конвертируем
+    static boolean isDelim(String s) { // тру если пробел
+        return s == " ";
     }
-    static boolean isOperator(String c) throws IOException { // возвращяем тру если один из символов ниже
-        if (isConversion()) {
-            return c == toCurrency;
-        }
-        return c == "+" || c == "-" || c == "*" || c == "/";
+    static boolean isOperator(String s) throws IOException { // возвращяем тру если один из символов ниже
+        return s == "+" || s == "-" || s == "*" || s == "/" || isConversion(s);
     }
-    public static boolean isNotCurrency(String c) throws IOException {
-        return isOperator(c) || c ==  "(" || c == ")" || c == " ";
+    public static boolean isOperatorExt(String s) throws IOException {
+        return isOperator(s) || s ==  "(" || s == ")" || s == " ";
     }
-    private static boolean isConversion() throws IOException {
+    private static boolean isConversion(String s) throws IOException {
         determineRates = new DetermineRates();
-        return determineRates.getMap1().containsKey(toCurrency);
+        determineConversion = new DetermineConversion();
+        currency = determineConversion.determine(userInput, determineRates); // наполняем currency числом, валюты конв.(с), коэфф.
+        return determineRates.getMap1().containsKey(s);
     }
     static int priority(String op) {
         Map switchMap = new HashMap();
@@ -62,8 +63,7 @@ public class ReversePolishNotation {
         return op.eval((Currency) o1, (Double) o2);
     }
     static Currency multiplyToRates(Object object, MultiplicationToRates op) throws IOException, WrongCalculationOperator {
-        DetermineConversion determineConversion = new DetermineConversion();
-        Currency currency = determineConversion.determine(userInput, determineRates);
+
         Double rates = currency.getRates();
         if (object instanceof Currency) {
             return op.eval((Currency)object, rates);
@@ -72,49 +72,72 @@ public class ReversePolishNotation {
     }
 
     public static Object eval(String s) throws WrongCalculationOperator, IOException { // вводим выражение
-        LinkedList<Object> st = new LinkedList<Object>(); // сюда наваливают цифры
-        LinkedList<String> op = new LinkedList<String>(); // сюда опрераторы, и st и op в порядке поступления
+        LinkedList<Object> st = new LinkedList<>(); // сюда наваливают цифры
+        LinkedList<String> op = new LinkedList<>(); // сюда опрераторы, и st и op в порядке поступления
         userInput = s;
         for (int i = 0; i < s.length(); i++) { // парсим строку с выражением и вычисляем
-            char c = s.charAt(i);
-            String str = Character.toString(c);
-            if (isDelim(c)) // каждый последующим символ всегда проверяется, не пробел ли он
+//            char c = s.charAt(i);
+            String str = Character.toString(s.charAt(i));
+            if (isDelim(str)) // каждый последующим символ всегда проверяется, не пробел ли он
                 continue;
-            if (Character.isAlphabetic(c)) {
-                toCurrency += c;
-                str = toCurrency;
+            if (!isOperatorExt(str)) {/*Character.toString(s.charAt(i))*/
+                while (i < s.length()) {
+                    if (Character.isAlphabetic(s.charAt(i))) {
+                        toCurrency += s.charAt(i++);
+                        str = toCurrency;
+                    } else {
+                        break;
+                    }
+                }
             }
             if (isOperator(str)) {
                 while (!op.isEmpty() && priority(op.getLast()) >= priority(str))// иначе если символ = (+-*/), то пока в op есть
                     // операторы, выполнять действия надчислами согласно приоритету действия, одновременно передаем и удаляем последний оператор из op
                     processOperator(st, op.removeLast());
                 op.add(str); // добавить +-*/
-            } else if (c == '(')
+            } else if (str == "(") {
                 op.add("("); // иначе елси символ = "(", то добавляем "(" в операторы
-            else if (c == ')') {
+            } else if (str == ")") {
                 while (op.getLast() != "(")
                     processOperator(st, op.removeLast()); // иначе если символ = ")", то, пока последний символ в op не "(", добавляем результат сложения
                     // (+ - * /) над последним и предпоследним числами в st, одновременно передаем и удаляем последний оператор из op
                     op.removeLast(); // удалить "("
-            } else { // иначе, т.е. если это цифры или буквы или $, то добавить их в st
-                String value = "";
-                String type = "";
-                while (i < s.length() && !isNotCurrency(Character.toString(s.charAt(i)))) {
-                    if (s.charAt(i) == '.' || Character.isDigit(s.charAt(i))) {
+            } else {
+                if (Character.isAlphabetic(s.charAt(i))) {
+                    break;
+                } else {
+                    st.add(i);
+                }
+            }
+            /*else { // иначе, т.е. если это цифры или буквы или $, то добавить их в st
+                *//*String value = "";
+                String type = "";*//*
+                while (i < s.length() && !isOperatorExt(Character.toString(s.charAt(i)))) {
+                    *//*if (Character.isAlphabetic(str.charAt(0))) {
+                        toCurrency += str;
+                        str = toCurrency;
+                    }*//*
+                    if (Character.isAlphabetic(s.charAt(i))) {
+                        toCurrency += s.charAt(i++);
+                        str = toCurrency;
+                    } else {
+                        break;
+                    }
+                    *//*if (s.charAt(i) == '.' || Character.isDigit(s.charAt(i))) {
                         value += s.charAt(i++);
                     } else {
                         type += s.charAt(i++);
-                    }
+                    }*//*
                 }
-                if (type.isEmpty()) {
+                *//*if (type.isEmpty()) {
                     Double operand = Double.parseDouble(value);
                     st.add(operand); // добавить простое число Double, вместо Currency с валютой и значением
                 } else {
                     Currency currency = new Currency(type, Double.parseDouble(value));
                     st.add(currency); // добавить Currency валюту и значение в st
                 }
-                --i;
-            }
+                --i;*//*
+            }*/
         }
         while (!op.isEmpty())
             processOperator(st, op.removeLast());
