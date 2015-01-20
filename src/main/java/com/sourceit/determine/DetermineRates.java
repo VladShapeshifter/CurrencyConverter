@@ -11,8 +11,8 @@ import java.util.Map;
 public class DetermineRates {
     private String read;
     private String[] stringArr;
-    private String typeTo = "";
-    private String typeFrom = "";
+    private static String typeTo = "";
+    private static String typeFrom = "";
     private double rateD = 0.0;
     private Map map1 = new HashMap<>();
     private Map<String, Double> map2 = new HashMap<>();
@@ -65,4 +65,14 @@ public class DetermineRates {
     public Map<String, Double> getMap2() {
         return map2;
     }
+
+    /*public static void main(String[] args) throws IOException {
+        DetermineRates determineRates = new DetermineRates();
+        System.out.println(typeTo);
+        System.out.println(typeFrom);
+        if (determineRates.getMap1().containsKey(typeTo)) {
+            double d = determineRates.getMap2().get(typeFrom);
+            System.out.println(d);
+        }
+    }*/
 }
