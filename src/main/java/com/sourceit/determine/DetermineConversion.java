@@ -2,11 +2,7 @@ package com.sourceit.determine;
 
 import com.sourceit.models.Currency;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Created by Vladislav on 24.12.2014.
@@ -19,15 +15,18 @@ public class DetermineConversion {
     private double valueD = 0.0;
     public Currency determine(String userInput, DetermineRates determineRates) throws IOException {
         while ((read = userInput)!=null) {
-            stringArr = read.split(" ");
+            stringArr = read.split("\\(");
             for (int i = 0; i < stringArr.length; i++) {
                 String typeFromIn = "";
                 if (stringArr[i].matches("\\D+")) {
                     typeTo = stringArr[i];
                 }
+                if (stringArr[i].contains(")")){
+                    stringArr[i] = stringArr[i].substring(0, stringArr[i].length() - 1);
+                }
                 String valueS = "";
                 int y = 0;
-                if (stringArr[i].matches("(\\D+\\d+\\.\\d+)|(\\d+\\.\\d+\\D+)")) {
+                if (stringArr[i].matches("(\\D+\\d+\\.\\d+)|(\\d+\\.\\d+\\D+)|(\\D+\\d+)|(\\d+\\D+)")) {
                     while (y < stringArr[i].length()) {
                         if (stringArr[i].charAt(y) == '.' || Character.isDigit(stringArr[i].charAt(y))) {
                             valueS += stringArr[i].charAt(y++);
@@ -38,9 +37,9 @@ public class DetermineConversion {
                     }
                     typeFrom = typeFromIn;
                     valueD = Double.parseDouble(valueS);
-
                 }
             }
+            userInput = null;
         }
         Currency currency = new Currency(typeFrom, valueD);
         if (determineRates.getMap1().containsKey(typeTo)) {
@@ -61,4 +60,11 @@ public class DetermineConversion {
     public double getValueD() {
         return valueD;
     }
+
+    /*public static void main(String[] args) throws IOException {
+        DetermineRates determineRates = new DetermineRates();
+        DetermineConversion determineConversion = new DetermineConversion();
+        Currency currency = determineConversion.determine("toDollar(3euro)", determineRates);
+        System.out.println(currency.getType() + " " + currency.getValue() + " " + currency.getRates());
+    }*/
 }
