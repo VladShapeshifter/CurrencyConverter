@@ -18,7 +18,7 @@ public class ReversePolishNotation {
     static String toCurrency = "";
     static String userInput;
     static DetermineRates determineRates;
-    static DetermineConversion determineConversion;
+    static DetermineConversion determineConversion = new DetermineConversion();
     static Currency currency; // в этом currency хранится число и какую валюту конвертируем
     static boolean isDelim(String s) { // тру если пробел
         return s == " ";
@@ -26,13 +26,12 @@ public class ReversePolishNotation {
     static boolean isOperator(String s) throws IOException { // возвращяем тру если один из символов ниже
         return s == "+" || s == "-" || s == "*" || s == "/" || isConversion(s);
     }
-    public static boolean isOperatorExt(String s) throws IOException {
+    public static boolean isOperatorExtra(String s) throws IOException {
         return isOperator(s) || s ==  "(" || s == ")" || s == " ";
     }
     private static boolean isConversion(String s) throws IOException {
         determineRates = new DetermineRates();
-        determineConversion = new DetermineConversion();
-        currency = determineConversion.determine(userInput, determineRates); // наполняем currency числом, валюты конв.(с), коэфф.
+
         return determineRates.getMap1().containsKey(s);
     }
     static int priority(String op) {
@@ -45,13 +44,13 @@ public class ReversePolishNotation {
         return ((int)switchMap.get(op));
     }
     static void processOperator(LinkedList<Object> st, String op) throws WrongCalculationOperator, IOException {
-        Object r = st.removeLast(); // выдёргиваем из упорядоченного листа последний элемент
-        Object l = st.removeLast(); // выдергиваем предпоследний элемент
-        if (op == "+") st.add(calculate(r, l, new Addition()));
-        if (op == "-") st.add(calculate(r, l ,new Subtraction()));
-        if (op == "*") st.add(calculate(r, l, new Multiplication()));
-        if (op == "/") st.add(calculate(r, l, new Division()));
-        if (op == toCurrency) st.add(multiplyToRates(r, new RatesMultiplication()));
+        Object l = st.removeLast(); // выдёргиваем из упорядоченного листа последний элемент
+        Object p = st.removeLast(); // выдергиваем предпоследний элемент
+        if (op == "+") st.add(calculate(l, p, new Addition()));
+        if (op == "-") st.add(calculate(l, p ,new Subtraction()));
+        if (op == "*") st.add(calculate(l, p, new Multiplication()));
+        if (op == "/") st.add(calculate(l, p, new Division()));
+        if (op == toCurrency) st.add(multiplyToRates(l, new RatesMultiplication()));
 
     }
     static Currency calculate(Object o1, Object o2, StandardMathOperator op) throws WrongCalculationOperator {
@@ -72,47 +71,47 @@ public class ReversePolishNotation {
     }
 
     public static Object eval(String s) throws WrongCalculationOperator, IOException { // вводим выражение
-        LinkedList<Object> st = new LinkedList<>(); // сюда наваливают цифры
-        LinkedList<String> op = new LinkedList<>(); // сюда опрераторы, и st и op в порядке поступления
+        LinkedList<Object> st = new LinkedList<>();
+        LinkedList<String> op = new LinkedList<>();
         userInput = s;
-        for (int i = 0; i < s.length(); i++) { // парсим строку с выражением и вычисляем
+        for (int i = 0; i < s.length(); i++) {
 //            char c = s.charAt(i);
             String str = Character.toString(s.charAt(i));
-            if (isDelim(str)) // каждый последующим символ всегда проверяется, не пробел ли он
+            if (isDelim(str)) {
                 continue;
-            if (!isOperatorExt(str)) {/*Character.toString(s.charAt(i))*/
-                while (i < s.length()) {
-                    if (Character.isAlphabetic(s.charAt(i))) {
-                        toCurrency += s.charAt(i++);
-                        str = toCurrency;
-                    } else {
-                        break;
-                    }
-                }
             }
-            if (isOperator(str)) {
-                while (!op.isEmpty() && priority(op.getLast()) >= priority(str))// иначе если символ = (+-*/), то пока в op есть
-                    // операторы, выполнять действия надчислами согласно приоритету действия, одновременно передаем и удаляем последний оператор из op
-                    processOperator(st, op.removeLast());
-                op.add(str); // добавить +-*/
-            } else if (str == "(") {
-                op.add("("); // иначе елси символ = "(", то добавляем "(" в операторы
+            while (i < s.length()) {
+                if (Character.isAlphabetic(s.charAt(i))) {
+                    toCurrency += s.charAt(i++);
+                    str = toCurrency;
+                } else {
+//                    i = s.length() - toCurrency.length();
+                    break;
+                }
+            } if (str == "(") {
+                op.add("(");
             } else if (str == ")") {
                 while (op.getLast() != "(")
-                    processOperator(st, op.removeLast()); // иначе если символ = ")", то, пока последний символ в op не "(", добавляем результат сложения
-                    // (+ - * /) над последним и предпоследним числами в st, одновременно передаем и удаляем последний оператор из op
-                    op.removeLast(); // удалить "("
-            } else {
-                if (Character.isAlphabetic(s.charAt(i))) {
-                    break;
-                } else {
-                    st.add(str);
+                    processOperator(st, op.removeLast());
+                    op.removeLast();
+            } else if (isOperator(str)) {
+                while (!op.isEmpty() && priority(op.getLast()) >= priority(str)) {
+                    processOperator(st, op.removeLast());
+                }
+                op.add(str); // добавить +-*/toCurrency
+            }else {
+                currency = determineConversion.determine(userInput, determineRates);
+                st.add(currency);
+                i++;
+                while (Character.isAlphabetic(s.charAt(i))) {
+                    i++;
+                    continue;
                 }
             }
             /*else { // иначе, т.е. если это цифры или буквы или $, то добавить их в st
                 *//*String value = "";
                 String type = "";*//*
-                while (i < s.length() && !isOperatorExt(Character.toString(s.charAt(i)))) {
+                while (i < s.length() && !isOperatorExtra(Character.toString(s.charAt(i)))) {
                     *//*if (Character.isAlphabetic(str.charAt(0))) {
                         toCurrency += str;
                         str = toCurrency;
@@ -141,7 +140,7 @@ public class ReversePolishNotation {
         }
         while (!op.isEmpty())
             processOperator(st, op.removeLast());
-        return (Currency)st.get(0);  // возврат результата
+        return st.get(0);  // возврат результата
     }
 
 
